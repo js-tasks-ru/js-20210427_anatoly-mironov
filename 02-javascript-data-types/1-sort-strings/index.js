@@ -3,8 +3,6 @@ const direction = {
   desc: 'desc',
 };
 
-const localeCompareSort = (a, b) => a.localeCompare(b, 'ru', {caseFirst: 'upper'});
-
 /**
  * sortStrings - sorts array of string by two criteria "asc" or "desc"
  * @param {string[]} arr - the array of strings
@@ -12,17 +10,17 @@ const localeCompareSort = (a, b) => a.localeCompare(b, 'ru', {caseFirst: 'upper'
  * @returns {string[]}
  */
 export function sortStrings(arr, param = direction.asc) {
-  const sortedArray = arr.slice();
+  const sortedArray = [...arr];
 
   switch (param) {
     case direction.asc:
-      sortedArray.sort(localeCompareSort);
+      sortedArray.sort((a, b) => a.localeCompare(b, 'ru', { caseFirst: 'upper' }));
       break;
     case direction.desc:
-      sortedArray.sort(localeCompareSort).reverse();
+      sortedArray.sort((a, b) => b.localeCompare(a, 'ru', { caseFirst: 'upper' }));
       break;
     default:
-      console.error(`Wrong sorting type: ${param}`);
+      throw new Error(`Wrong sorting type: ${param}`);
   }
 
   return sortedArray;
