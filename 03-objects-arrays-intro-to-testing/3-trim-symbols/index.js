@@ -6,11 +6,10 @@
  */
 export function trimSymbols(string, size) {
   const newStringArray = [];
-  const separator = '';
   let counter;
   let previousSymbol;
 
-  string.split(separator).map(symbol => {
+  [...string].map(symbol => {
     if (size !== 0 && (counter < size || previousSymbol !== symbol || !size)) {
       if (previousSymbol !== symbol) {
         counter = 0;
@@ -23,6 +22,6 @@ export function trimSymbols(string, size) {
       counter++;
     }
   });
-  
-  return newStringArray.join(separator);
+
+  return newStringArray.join('');
 }
