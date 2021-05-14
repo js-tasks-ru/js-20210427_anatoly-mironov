@@ -78,7 +78,7 @@ export default class ColumnChart {
     const headerNode = this.getDivElement();
     headerNode.className = 'column-chart__header';
     headerNode.setAttribute('data-element', 'header');
-    headerNode.textContent = 'formatHeading' in this.chart ? this.chart.formatHeading(this.chart.value) : this.chart.value;
+    headerNode.textContent = 'formatHeading' in this.chart ? this.chart.formatHeading(this.chart.value).replace(/\B(?=(\d{3})+(?!\d))/g, ",") : this.chart.value;
 
     return headerNode;
   }
