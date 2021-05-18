@@ -1,4 +1,16 @@
 export default class SortableTable {
+  directionMultiplier = {
+    asc: 1,
+    desc: -1,
+  };
+
+  columnsSortTypes = new Map();
+
+  currentSorting = {
+    column: '',
+    direction: ''
+  };
+
   constructor(headerConfig = [], { data = [] } = {}) {
     this.headerConfig = headerConfig;
     this.data = data;
@@ -6,25 +18,34 @@ export default class SortableTable {
     this.render();
   }
 
-  get headerContent() {
-    return this.headerConfig.map(({ id, title, sortable }) => `
-      <div class="sortable-table__cell" data-id="${id}" data-sortable="${sortable}">
-        <span>${title}</span>
-      </div>
-    `).join('');
+  static getElementFromTemplate(template) {
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML = template;
+
+    return wrapper.firstElementChild;
   }
 
-  get bodyContent() {
-    return this.data.map(({ id, title, quantity, price, sales, images = [] }) => `
-      <a href="/products/${id}" class="sortable-table__row">
-        <div class="sortable-table__cell">
-          ${ images.length ? `<img class="sortable-table-image" alt="Image" src="${ images[0].url }">` : '' }
-        </div>
-        <div class="sortable-table__cell">${title}</div>
+  get subElements() {
+    const body = this.element.querySelector(`[data-element=body]`);
+    return { body };
+  }
 
-        <div class="sortable-table__cell">${quantity}</div>
-        <div class="sortable-table__cell">${price}</div>
-        <div class="sortable-table__cell">${sales}</div>
+  getHeaderTemplate() {
+    return this.headerConfig.map(({ id, title, sortable, sortType = null }) => {
+      this.columnsSortTypes.set(id, sortType);
+
+      return `
+        <div class="sortable-table__cell" data-id="${id}" data-sortable="${sortable}">
+          <span>${title}</span>
+        </div>
+      `;
+    }).join('');
+  }
+
+  getBodyTemplate(data) {
+    return data.map(product => `
+      <a href="/products/${product.id}" class="sortable-table__row">
+        ${this.headerConfig.map(column => column.template ? column.template(product.images) : `<div class="sortable-table__cell">${product[column.id]}</div>`).join('')}
       </a>
     `).join('');
   }
@@ -33,8 +54,8 @@ export default class SortableTable {
     return `
       <div data-element="productsContainer" class="products-list__container">
         <div class="sortable-table">
-          <div data-element="header" class="sortable-table__header sortable-table__row">${this.headerContent}</div>
-          <div data-element="body" class="sortable-table__body">${this.bodyContent}</div>
+          <div data-element="header" class="sortable-table__header sortable-table__row">${this.getHeaderTemplate()}</div>
+          <div data-element="body" class="sortable-table__body">${this.getBodyTemplate(this.data)}</div>
           <div data-element="loading" class="loading-line sortable-table__loading-line"></div>
           <div data-element="emptyPlaceholder" class="sortable-table__empty-placeholder">
           <div>
@@ -46,15 +67,48 @@ export default class SortableTable {
     `;
   }
 
-  sort(field, direction) {
+  sort(column, direction) {
+    if (!this.sortArrow) {
+      this.sortArrow = SortableTable.getElementFromTemplate(`
+        <span data-element="arrow" class="sortable-table__sort-arrow">
+          <span class="sort-arrow"></span>
+        </span>
+      `);
+    }
 
+    if (this.currentSorting.column !== column || this.currentSorting.direction !== direction) {
+      const fieldElement = this.element.querySelector(`[data-id=${column}]`);
+      fieldElement.setAttribute('data-order', direction);
+      fieldElement.append(this.sortArrow);
+
+      switch (this.columnsSortTypes.get(column)) {
+      case 'string':
+        this.sortedData = this.sortStrings(this.data, column, this.directionMultiplier[direction]);
+        break;
+      case 'number':
+        this.sortedData = this.sortNumbers(this.data, column, this.directionMultiplier[direction]);
+        break;
+      default:
+        console.warn(`Impossible to sort data with type '${this.columnsSortTypes.get(column)}'`);
+      }
+
+      this.update(this.sortedData);
+
+      this.currentSorting.column = column;
+      this.currentSorting.direction = direction;
+    }
+  }
+
+  sortStrings = (arr, field, multiplier) => [...arr].sort((a, b) => multiplier * a[field].localeCompare(b[field], 'ru', { caseFirst: 'upper' }));
+
+  sortNumbers = (arr, field, multiplier) => [...arr].sort((a, b) => multiplier * (a[field] - b[field]));
+
+  update(data) {
+    this.element.querySelector(`[data-element=body]`).innerHTML = this.getBodyTemplate(data);
   }
 
   render() {
-    this.element = document.createElement('div');
-    this.element.innerHTML = this.template;
-
-    this.element = this.element.firstElementChild;
+    this.element = SortableTable.getElementFromTemplate(this.template);
   }
 
   remove() {
