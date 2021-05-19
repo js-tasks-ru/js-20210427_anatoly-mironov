@@ -7,16 +7,13 @@ export default class SortableTable {
   columnsSortTypes = new Map();
 
   currentSorting = {
-    column: '',
-    direction: ''
+    column: null,
+    direction: null
   };
 
-  constructor(headerConfig = [], { data = [] } = {}) {
-    this.headerConfig = headerConfig;
-    this.data = data;
+  sortStrings = (arr, field, multiplier) => [...arr].sort((a, b) => multiplier * a[field].localeCompare(b[field], 'ru', { caseFirst: 'upper' }));
 
-    this.render();
-  }
+  sortNumbers = (arr, field, multiplier) => [...arr].sort((a, b) => multiplier * (a[field] - b[field]));
 
   static getElementFromTemplate(template) {
     const wrapper = document.createElement('div');
@@ -25,12 +22,19 @@ export default class SortableTable {
     return wrapper.firstElementChild;
   }
 
+  constructor(headerConfig = [], { data = [] } = {}) {
+    this.headerConfig = headerConfig;
+    this.data = data;
+
+    this.render();
+  }
+
   get subElements() {
     const body = this.element.querySelector(`[data-element=body]`);
     return { body };
   }
 
-  getHeaderTemplate() {
+  getHeaderElements() {
     return this.headerConfig.map(({ id, title, sortable, sortType = null }) => {
       this.columnsSortTypes.set(id, sortType);
 
@@ -42,7 +46,7 @@ export default class SortableTable {
     }).join('');
   }
 
-  getBodyTemplate(data) {
+  getBodyElements(data) {
     return data.map(product => `
       <a href="/products/${product.id}" class="sortable-table__row">
         ${this.headerConfig.map(column => column.template ? column.template(product.images) : `<div class="sortable-table__cell">${product[column.id]}</div>`).join('')}
@@ -54,8 +58,8 @@ export default class SortableTable {
     return `
       <div data-element="productsContainer" class="products-list__container">
         <div class="sortable-table">
-          <div data-element="header" class="sortable-table__header sortable-table__row">${this.getHeaderTemplate()}</div>
-          <div data-element="body" class="sortable-table__body">${this.getBodyTemplate(this.data)}</div>
+          <div data-element="header" class="sortable-table__header sortable-table__row">${this.getHeaderElements()}</div>
+          <div data-element="body" class="sortable-table__body">${this.getBodyElements(this.data)}</div>
           <div data-element="loading" class="loading-line sortable-table__loading-line"></div>
           <div data-element="emptyPlaceholder" class="sortable-table__empty-placeholder">
           <div>
@@ -77,34 +81,40 @@ export default class SortableTable {
     }
 
     if (this.currentSorting.column !== column || this.currentSorting.direction !== direction) {
-      const fieldElement = this.element.querySelector(`[data-id=${column}]`);
-      fieldElement.setAttribute('data-order', direction);
-      fieldElement.append(this.sortArrow);
-
-      switch (this.columnsSortTypes.get(column)) {
-      case 'string':
-        this.sortedData = this.sortStrings(this.data, column, this.directionMultiplier[direction]);
-        break;
-      case 'number':
-        this.sortedData = this.sortNumbers(this.data, column, this.directionMultiplier[direction]);
-        break;
-      default:
-        console.warn(`Impossible to sort data with type '${this.columnsSortTypes.get(column)}'`);
+      if (this.currentSorting.column) {
+        this.element.querySelector(`[data-id=${this.currentSorting.column}]`).removeAttribute('data-order');
       }
 
-      this.update(this.sortedData);
+      const columnElement = this.element.querySelector(`[data-id=${column}]`);
+      columnElement.setAttribute('data-order', direction);
+      columnElement.append(this.sortArrow);
+
+      this.update(this.sortData(column, direction));
 
       this.currentSorting.column = column;
       this.currentSorting.direction = direction;
     }
   }
 
-  sortStrings = (arr, field, multiplier) => [...arr].sort((a, b) => multiplier * a[field].localeCompare(b[field], 'ru', { caseFirst: 'upper' }));
+  sortData(column, direction) {
+    let sortedData = [];
 
-  sortNumbers = (arr, field, multiplier) => [...arr].sort((a, b) => multiplier * (a[field] - b[field]));
+    switch (this.columnsSortTypes.get(column)) {
+    case 'string':
+      sortedData = this.sortStrings(this.data, column, this.directionMultiplier[direction]);
+      break;
+    case 'number':
+      sortedData = this.sortNumbers(this.data, column, this.directionMultiplier[direction]);
+      break;
+    default:
+      console.warn(`Impossible to sort data with type '${this.columnsSortTypes.get(column)}'`);
+    }
+
+    return sortedData;
+  }
 
   update(data) {
-    this.element.querySelector(`[data-element=body]`).innerHTML = this.getBodyTemplate(data);
+    this.element.querySelector(`[data-element=body]`).innerHTML = this.getBodyElements(data);
   }
 
   render() {
