@@ -27,7 +27,7 @@
 Столбцы с текстовыми или цифровыми данными сортируются аналогично реализации 
 в задании [sortStrings](taskbook:javascript-data-types/sort-strings)
 
-!["SortableTable v1"](sortable-table-v1.gif)
+!["SortableTable v1"](./public/sortable-table-v1.gif)
 
 ## Дальнейшая реализация 
 

@@ -1,6 +1,6 @@
-const direction = {
-  asc: 'asc',
-  desc: 'desc',
+const multiplier = {
+  asc: 1,
+  desc: -1,
 };
 
 /**
@@ -9,19 +9,5 @@ const direction = {
  * @param {string} [param="asc"] param - the sorting type "asc" or "desc"
  * @returns {string[]}
  */
-export function sortStrings(arr, param = direction.asc) {
-  const sortedArray = [...arr];
-
-  switch (param) {
-    case direction.asc:
-      sortedArray.sort((a, b) => a.localeCompare(b, 'ru', { caseFirst: 'upper' }));
-      break;
-    case direction.desc:
-      sortedArray.sort((a, b) => b.localeCompare(a, 'ru', { caseFirst: 'upper' }));
-      break;
-    default:
-      throw new Error(`Wrong sorting type: ${param}`);
-  }
-
-  return sortedArray;
-}
+export const sortStrings = (arr, param = 'asc') =>
+  [...arr].sort((a, b) => multiplier[param] * a.localeCompare(b, 'ru', { caseFirst: 'upper' }));
