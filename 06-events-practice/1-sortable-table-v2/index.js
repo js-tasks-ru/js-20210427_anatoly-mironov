@@ -39,7 +39,8 @@ export default class SortableTable {
         order: SortableTable.defaultSortOrder
       },
       isSortLocally = true
-    } = {}) {
+    } = {}
+  ) {
     this.headerConfig = headerConfig;
     this.data = data;
     this.isSortLocally = isSortLocally;
