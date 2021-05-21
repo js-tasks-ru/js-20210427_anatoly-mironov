@@ -1,14 +1,9 @@
 export default class SortableTable {
-  directionMultiplier = {
-    asc: 1,
-    desc: -1,
-  };
-
   columnsSortTypes = new Map();
 
   currentSorting = {
-    column: null,
-    direction: null
+    column: '',
+    direction: ''
   };
 
   sortStrings = (arr, field, multiplier) => [...arr].sort((a, b) => multiplier * a[field].localeCompare(b[field], 'ru', { caseFirst: 'upper' }));
@@ -34,6 +29,17 @@ export default class SortableTable {
     return { body };
   }
 
+  get template() {
+    return `
+      <div data-element="productsContainer" class="products-list__container">
+        <div class="sortable-table">
+          <div data-element="header" class="sortable-table__header sortable-table__row">${this.getHeaderElements()}</div>
+          <div data-element="body" class="sortable-table__body">${this.getBodyElements(this.data)}</div>
+        </div>
+      </div>
+    `;
+  }
+
   getHeaderElements() {
     return this.headerConfig.map(({ id, title, sortable, sortType = null }) => {
       this.columnsSortTypes.set(id, sortType);
@@ -52,23 +58,6 @@ export default class SortableTable {
         ${this.headerConfig.map(column => column.template ? column.template(product.images) : `<div class="sortable-table__cell">${product[column.id]}</div>`).join('')}
       </a>
     `).join('');
-  }
-
-  get template() {
-    return `
-      <div data-element="productsContainer" class="products-list__container">
-        <div class="sortable-table">
-          <div data-element="header" class="sortable-table__header sortable-table__row">${this.getHeaderElements()}</div>
-          <div data-element="body" class="sortable-table__body">${this.getBodyElements(this.data)}</div>
-          <div data-element="loading" class="loading-line sortable-table__loading-line"></div>
-          <div data-element="emptyPlaceholder" class="sortable-table__empty-placeholder">
-          <div>
-            <p>No products satisfies your filter criteria</p>
-            <button type="button" class="button-primary-outline">Reset all filters</button>
-          </div>
-        </div>
-      </div>
-    `;
   }
 
   sort(column, direction) {
@@ -97,20 +86,21 @@ export default class SortableTable {
   }
 
   sortData(column, direction) {
-    let sortedData = [];
+    const directionMultiplier = {
+      asc: 1,
+      desc: -1,
+    };
 
     switch (this.columnsSortTypes.get(column)) {
     case 'string':
-      sortedData = this.sortStrings(this.data, column, this.directionMultiplier[direction]);
-      break;
+      return this.sortStrings(this.data, column, directionMultiplier[direction]);
     case 'number':
-      sortedData = this.sortNumbers(this.data, column, this.directionMultiplier[direction]);
-      break;
+      return this.sortNumbers(this.data, column, directionMultiplier[direction]);
     default:
       console.warn(`Impossible to sort data with type '${this.columnsSortTypes.get(column)}'`);
     }
 
-    return sortedData;
+    return this.data;
   }
 
   update(data) {
