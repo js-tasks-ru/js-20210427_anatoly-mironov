@@ -12,7 +12,7 @@ export default class SortableTable {
 
   onSortClick = event => {
     const id = event.currentTarget.getAttribute('data-id');
-    let order = event.currentTarget.getAttribute('data-order');
+    const order = event.currentTarget.getAttribute('data-order');
 
     if (this.currentSorting.id !== id || this.currentSorting.order === order) {
       this.sort(id, !order || order === SortableTable.defaultSortOrder ? 'desc' : 'asc');
@@ -22,13 +22,6 @@ export default class SortableTable {
   sortStrings = (arr, field, multiplier) => [...arr].sort((a, b) => multiplier * a[field].localeCompare(b[field], 'ru', { caseFirst: 'upper' }));
 
   sortNumbers = (arr, field, multiplier) => [...arr].sort((a, b) => multiplier * (a[field] - b[field]));
-
-  static getElementFromTemplate(template) {
-    const wrapper = document.createElement('div');
-    wrapper.innerHTML = template;
-
-    return wrapper.firstElementChild;
-  }
 
   constructor(
     headerConfig = [],
@@ -103,6 +96,13 @@ export default class SortableTable {
     return result;
   }
 
+  getElementFromTemplate(template) {
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML = template;
+
+    return wrapper.firstElementChild;
+  }
+
   initEventListeners() {
     this.subElements.header.querySelectorAll('.sortable-table__cell').forEach(column => {
       if (this.columnsSortTypes.get(column.getAttribute('data-id'))) {
@@ -149,9 +149,9 @@ export default class SortableTable {
   }
 
   render() {
-    this.element = SortableTable.getElementFromTemplate(this.template);
+    this.element = this.getElementFromTemplate(this.template);
     this.subElements = this.getSubElements();
-    this.subElements.sortArrow = SortableTable.getElementFromTemplate(this.sortArrowTemplate);
+    this.subElements.sortArrow = this.getElementFromTemplate(this.sortArrowTemplate);
 
     this.initEventListeners();
   }

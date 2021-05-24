@@ -4,7 +4,7 @@
 на элементах с data-атрибутом `data-tooltip` (необходимо использовать приём проектирования «поведение», 
 подробнее в [учебнике](https://learn.javascript.ru/event-delegation#priyom-proektirovaniya-povedenie))
 
-!["Tooltip"](tooltip.gif)
+!["Tooltip"](./public/tooltip.gif)
 
 В проекте данный компонент будет использоваться на странице [main page](https://course-js.javascript.ru/)
 в компонентах:
