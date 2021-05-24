@@ -18,6 +18,10 @@ export default class SortableTable {
   data = [];
   subElements = {};
 
+  sortStrings = (arr, field, multiplier) => [...arr].sort((a, b) => multiplier * a[field].localeCompare(b[field], 'ru', { caseFirst: 'upper' }));
+
+  sortNumbers = (arr, field, multiplier) => [...arr].sort((a, b) => multiplier * (a[field] - b[field]));
+
   onScroll = event => {
 
   }
@@ -31,10 +35,6 @@ export default class SortableTable {
       return this.sort(id, !order || order === SortableTable.defaultSortOrder ? 'desc' : 'asc');
     }
   }
-
-  sortStrings = (arr, field, multiplier) => [...arr].sort((a, b) => multiplier * a[field].localeCompare(b[field], 'ru', { caseFirst: 'upper' }));
-
-  sortNumbers = (arr, field, multiplier) => [...arr].sort((a, b) => multiplier * (a[field] - b[field]));
 
   constructor(
     headerConfig = [],
