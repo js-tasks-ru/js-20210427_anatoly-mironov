@@ -15,24 +15,41 @@ export default class SortableTable {
     order: ''
   };
 
+  isLoading = false;
+
   data = [];
   subElements = {};
+
+  firstRecordToLoad = 0;
+  recordsToLoad = 30;
 
   sortStrings = (arr, field, multiplier) => [...arr].sort((a, b) => multiplier * a[field].localeCompare(b[field], 'ru', { caseFirst: 'upper' }));
 
   sortNumbers = (arr, field, multiplier) => [...arr].sort((a, b) => multiplier * (a[field] - b[field]));
 
-  onScroll = event => {
+  onScroll = async () => {
+    const windowHeight = document.documentElement.clientHeight;
+    const leftToTableBottom = this.element.getBoundingClientRect().bottom;
+    const loadDataAtBeforeBottom = 100;
 
+    if ((leftToTableBottom - windowHeight < loadDataAtBeforeBottom) && !this.isLoading) {
+      this.isLoading = true;
+
+      this.firstRecordToLoad += this.recordsToLoad;
+      this.update(await this.loadData(), false);
+
+      this.isLoading = false;
+    }
   }
 
-  onSortClick = event => {
+  onSortClick = async event => {
     const column = event.target.closest('[data-id]');
     const id = column.getAttribute('data-id');
     const order = column.getAttribute('data-order');
 
     if (this.columnsSortTypes.get(id) && (this.currentSorting.id !== id || this.currentSorting.order === order)) {
-      return this.sort(id, !order || order === SortableTable.defaultSortOrder ? 'desc' : 'asc');
+      this.firstRecordToLoad = 0;
+      await this.sort(id, !order || order === SortableTable.defaultSortOrder ? 'desc' : 'asc');
     }
   }
 
@@ -114,19 +131,12 @@ export default class SortableTable {
     return wrapper.firstElementChild;
   }
 
-  initEventListeners() {
-    this.subElements.header.addEventListener('pointerdown', this.onSortClick);
-  }
-
   async sort (id, order) {
     if (this.currentSorting.id) {
       this.subElements.header.querySelector(`[data-id=${this.currentSorting.id}]`).removeAttribute('data-order');
     }
 
-    const columnElement = this.subElements.header.querySelector(`[data-id=${id}]`);
-    columnElement.setAttribute('data-order', order);
-    columnElement.append(this.subElements.sortArrow);
-
+    this.appendSortArrow(id, order);
     this.update(this.isSortLocally ? this.sortOnClient(id, order) : await this.sortOnServer(id, order));
 
     this.currentSorting.id = id;
@@ -152,21 +162,27 @@ export default class SortableTable {
     return this.loadData(id, order);
   }
 
-  async loadData(id = this.sorted.id, order = this.sorted.order) {
+  async loadData(id = this.currentSorting.id, order = this.currentSorting.order, startFrom = this.firstRecordToLoad, endAt = this.firstRecordToLoad + this.recordsToLoad) {
     this.element.classList.add(this.loadingTableClass);
-    const data = await fetchJson(`${BACKEND_URL}/${this.url}?_sort=${id}&_order=${order}&_start=0&_end=120`);
+    const data = await fetchJson(`${BACKEND_URL}/${this.url}?_sort=${id}&_order=${order}&_start=${startFrom}&_end=${endAt}`);
     this.element.classList.remove(this.loadingTableClass);
 
     return data;
   }
 
-  update(data) {
+  update(data, replaceData = true) {
     if (data.length) {
-      this.subElements.body.innerHTML = this.getBodyElementsTemplate(data);
+      this.subElements.body.innerHTML = replaceData ? this.getBodyElementsTemplate(data) : this.subElements.body.innerHTML + this.getBodyElementsTemplate(data);
       this.element.classList.remove(this.emptyTableClass);
     } else {
       this.element.classList.add(this.emptyTableClass);
     }
+  }
+
+  appendSortArrow(id, order) {
+    const columnElement = this.subElements.header.querySelector(`[data-id=${id}]`);
+    columnElement.setAttribute('data-order', order);
+    columnElement.append(this.subElements.sortArrow);
   }
 
   async render() {
@@ -176,12 +192,24 @@ export default class SortableTable {
 
     this.initEventListeners();
 
-    const data = await this.loadData();
+    const data = await this.loadData(this.sorted.id, this.sorted.order);
+    this.appendSortArrow(this.sorted.id, this.sorted.order);
     this.update(data);
+
+    this.currentSorting = this.sorted;
+  }
+
+  initEventListeners() {
+    this.subElements.header.addEventListener('pointerdown', this.onSortClick);
+
+    if (!this.isSortLocally) {
+      document.addEventListener('scroll', this.onScroll);
+    }
   }
 
   remove() {
     this.element.remove();
+    document.removeEventListener('scroll', this.onScroll);
   }
 
   destroy() {
