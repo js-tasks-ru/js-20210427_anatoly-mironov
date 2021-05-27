@@ -64,12 +64,12 @@ export default class SortableTable {
       isSortLocally = false
     } = {}
   ) {
-    this.url = url;
+    this.url = new URL(url, BACKEND_URL);
     this.headerConfig = headerConfig;
     this.isSortLocally = isSortLocally;
     this.sorted = sorted;
 
-    this.render().catch();
+    this.render();
   }
 
   get template() {
@@ -164,7 +164,13 @@ export default class SortableTable {
 
   async loadData(id = this.currentSorting.id, order = this.currentSorting.order, startFrom = this.firstRecordToLoad, endAt = this.firstRecordToLoad + this.recordsToLoad) {
     this.element.classList.add(this.loadingTableClass);
-    const data = await fetchJson(`${BACKEND_URL}/${this.url}?_sort=${id}&_order=${order}&_start=${startFrom}&_end=${endAt}`);
+
+    this.url.searchParams.set('_sort', id);
+    this.url.searchParams.set('_order', order);
+    this.url.searchParams.set('_start', startFrom.toString());
+    this.url.searchParams.set('_end', endAt.toString());
+    const data = await fetchJson(this.url);
+
     this.element.classList.remove(this.loadingTableClass);
 
     return data;

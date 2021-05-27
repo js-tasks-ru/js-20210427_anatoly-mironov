@@ -15,14 +15,14 @@ export default class ColumnChart {
   value = 0;
 
   constructor({ url = '', range = {}, label = '', link = '', formatHeading = null } = {}) {
-    this.url = url;
+    this.url = new URL(url, BACKEND_URL);
     this.label = label;
     this.link = link;
     this.formatHeading = formatHeading;
 
     this.render();
 
-    this.update(range.from, range.to).catch();
+    this.update(range.from, range.to);
   }
 
   get template() {
@@ -49,7 +49,10 @@ export default class ColumnChart {
   }
 
   getDataFromServer(from, to) {
-    return fetchJson(`${BACKEND_URL}/${this.url}?from=${from.toISOString()}&to=${to.toISOString()}`);
+    this.url.searchParams.set('from', from.toISOString());
+    this.url.searchParams.set('to', to.toISOString());
+
+    return fetchJson(this.url);
   }
 
   render() {

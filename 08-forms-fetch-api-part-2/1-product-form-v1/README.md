@@ -3,7 +3,7 @@
 Необходимо реализовать "ProductForm" компонент, который будет использоваться для создания и редактирования товаров на странице
 [products](https://course-js.javascript.ru/products). 
 
-!["ProductForm v1"](product-form-v1.gif)
+!["ProductForm v1"](./public/product-form-v1.gif)
 
 ## Условия реализации
 
@@ -24,7 +24,7 @@
 специальный ключ для отправки изображение - `IMGUR_CLIENT_ID` находится в файле "index.js"
 
 **Запросы на сервер:**
-Все параметры API можно получить на странице демо-версии проекта [https://course-js.javascript.ru/](https://course-js.javascript.ru/)
+Все параметры API можно получить на странице демо?  -версии проекта [https://course-js.javascript.ru/](https://course-js.javascript.ru/)
 проинспектировав "сетевые запросы" (в "Google Chrome" это вкладка "Network" в консоли разработчика)
 
 **Обратите внимание:**
