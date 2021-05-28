@@ -10,7 +10,11 @@ export default class ProductForm {
 
   api = '/api/rest/';
 
-  constructor (productId) {
+  onClickDeleteImage = event => {
+
+  }
+
+  constructor(productId = null) {
     this.productId = productId;
   }
 
@@ -21,29 +25,32 @@ export default class ProductForm {
     return wrapper.firstElementChild;
   }
 
-  async render () {
+  async render() {
+    this.categories = await this.getCategories();
+    this.element = this.getElementFromTemplate(this.template);
+    document.body.append(this.element);
+
     if (this.productId) {
       this.product = await this.getProductInfo();
-      this.categories = await this.getCategories();
 
-      this.element = this.getElementFromTemplate(this.template);
-      document.body.append(this.element);
-
-      this.element.querySelector('[name=title]').value = this.product.title;
-      this.element.querySelector('[name=description]').value = this.product.description;
-      this.element.querySelector('[name=price]').value = this.product.price;
-      this.element.querySelector('[name=discount]').value = this.product.discount;
-      this.element.querySelector('[name=quantity]').value = this.product.quantity;
+      this.setProductData();
     }
   }
 
   async getProductInfo(id = this.productId) {
-    const data = await fetchJson(`${BACKEND_URL}${this.api}products?id=${id}`);
+    const url = new URL(`${this.api}products`, BACKEND_URL);
+    url.searchParams.set('id', id);
+
+    const data = await fetchJson(url);
     return data[0];
   }
 
   getCategories() {
-    return fetchJson(`${BACKEND_URL}${this.api}categories?_sort=weight&_refs=subcategory`);
+    const url = new URL(`${this.api}categories`, BACKEND_URL);
+    url.searchParams.set('_sort', 'weight');
+    url.searchParams.set('_refs', 'subcategory');
+
+    return fetchJson(url);
   }
 
   get template() {
@@ -52,7 +59,7 @@ export default class ProductForm {
         <form data-element="productForm" class="form-grid">
           ${this.titleTemplate}
           ${this.descriptionTemplate}
-          ${this.photoTemplate}
+          ${this.imagesTemplate}
           ${this.categoriesTemplate}
           ${this.priceTemplate}
           ${this.numberTemplate}
@@ -85,25 +92,12 @@ export default class ProductForm {
     `;
   }
 
-  get photoTemplate() {
+  get imagesTemplate() {
     return `
       <div class="form-group form-group__wide" data-element="sortable-list-container">
         <label class="form-label">Фото</label>
         <div data-element="imageListContainer">
-          <ul class="sortable-list">
-            <li class="products-edit__imagelist-item sortable-list__item" style="">
-              <input type="hidden" name="url" value="https://i.imgur.com/MWorX2R.jpg">
-              <input type="hidden" name="source" value="75462242_3746019958756848_838491213769211904_n.jpg">
-              <span>
-                <img src="icon-grab.svg" data-grab-handle="" alt="grab">
-                <img class="sortable-table__cell-img" alt="Image" src="https://i.imgur.com/MWorX2R.jpg">
-                <span>75462242_3746019958756848_838491213769211904_n.jpg</span>
-              </span>
-              <button type="button">
-                <img src="icon-trash.svg" data-delete-handle="" alt="delete">
-              </button>
-            </li>
-          </ul>
+          <ul class="sortable-list"></ul>
         </div>
         <button type="button" name="uploadImage" class="button-primary-outline">
           <span>Загрузить</span>
@@ -163,5 +157,45 @@ export default class ProductForm {
         return `<option value="${subcategory.id}">${category.title} &gt; ${subcategory.title}</option>`;
       }).join('');
     }).join('');
+  }
+
+  setProductData() {
+    ['title', 'description', 'price', 'discount', 'quantity', 'status', 'subcategory']
+      .forEach(element => {
+        this.element.querySelector(`[name=${element}]`).value = this.product[element];
+      });
+
+    if (this.product.images.length) {
+      this.element.querySelector('div[data-element=imageListContainer]').innerHTML = this.product.images.map(({ source, url }) => `
+        <li class="products-edit__imagelist-item sortable-list__item" style="">
+          <input type="hidden" name="url" value="${url}">
+          <input type="hidden" name="source" value="${source}">
+          <span>
+            <img src="icon-grab.svg" data-grab-handle="" alt="grab">
+            <img class="sortable-table__cell-img" alt="Image" src="${url}">
+            <span>${source}</span>
+          </span>
+          <button type="button">
+            <img src="icon-trash.svg" data-delete-handle="" alt="delete">
+          </button>
+        </li>
+      `).join('');
+    }
+  }
+
+  removeImage() {
+
+  }
+
+  initEventListeners() {
+    this.element.querySelector('div[data-element=imageListContainer]').addEventListener('pointe');
+  }
+
+  remove() {
+    this.element.remove();
+  }
+
+  destroy() {
+    this.remove();
   }
 }
