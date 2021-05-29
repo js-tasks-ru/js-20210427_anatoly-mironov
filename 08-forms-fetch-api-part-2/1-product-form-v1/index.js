@@ -8,10 +8,18 @@ export default class ProductForm {
   product = {};
   categories = [];
 
+  subElements = {};
+
   api = '/api/rest/';
 
   onClickDeleteImage = event => {
+  }
 
+  onSubmit = event => {
+    event.preventDefault();
+    console.log(new FormData(this.subElements['productForm']));
+
+    this.save();
   }
 
   constructor(productId = null) {
@@ -25,16 +33,33 @@ export default class ProductForm {
     return wrapper.firstElementChild;
   }
 
+  getSubElements(element = this.element) {
+    const result = {};
+    const elements = element.querySelectorAll('[data-element]');
+
+    for (const subElement of elements) {
+      const name = subElement.dataset.element;
+
+      result[name] = subElement;
+    }
+
+    return result;
+  }
+
   async render() {
     this.categories = await this.getCategories();
     this.element = this.getElementFromTemplate(this.template);
     document.body.append(this.element);
+
+    this.subElements = this.getSubElements();
 
     if (this.productId) {
       this.product = await this.getProductInfo();
 
       this.setProductData();
     }
+
+    this.initEventListeners();
   }
 
   async getProductInfo(id = this.productId) {
@@ -65,7 +90,7 @@ export default class ProductForm {
           ${this.numberTemplate}
           ${this.statusTemplate}
           <div class="form-buttons">
-            <button type="submit" name="save" class="button-primary-outline">Сохранить товар</button>
+            <button type="submit" id="save" class="button-primary-outline">Сохранить товар</button>
           </div>
         </form>
       </div>
@@ -77,7 +102,7 @@ export default class ProductForm {
       <div class="form-group form-group__half_left">
         <fieldset>
           <label class="form-label">Название товара</label>
-          <input required="" type="text" name="title" class="form-control" placeholder="Название товара">
+          <input required="" type="text" id="title" name="title" class="form-control" placeholder="Название товара">
         </fieldset>
       </div>
     `;
@@ -87,7 +112,7 @@ export default class ProductForm {
     return `
       <div class="form-group form-group__wide">
         <label class="form-label">Описание</label>
-        <textarea required="" class="form-control" name="description" data-element="productDescription" placeholder="Описание товара"></textarea>
+        <textarea required="" class="form-control" id="description" name="description" data-element="productDescription" placeholder="Описание товара"></textarea>
       </div>
     `;
   }
@@ -99,7 +124,7 @@ export default class ProductForm {
         <div data-element="imageListContainer">
           <ul class="sortable-list"></ul>
         </div>
-        <button type="button" name="uploadImage" class="button-primary-outline">
+        <button type="button" id="uploadImage" class="button-primary-outline">
           <span>Загрузить</span>
         </button>
       </div>
@@ -110,7 +135,7 @@ export default class ProductForm {
     return `
       <div class="form-group form-group__half_left">
         <label class="form-label">Категория</label>
-        <select class="form-control" name="subcategory">${this.subcategoriesTemplate}</select>
+        <select class="form-control" id="subcategory" name="subcategory">${this.subcategoriesTemplate}</select>
       </div>
     `;
   }
@@ -120,11 +145,11 @@ export default class ProductForm {
       <div class="form-group form-group__half_left form-group__two-col">
         <fieldset>
           <label class="form-label">Цена ($)</label>
-          <input required="" type="number" name="price" class="form-control" placeholder="100">
+          <input required="" type="number" id="price" name="price" class="form-control" placeholder="100">
         </fieldset>
         <fieldset>
           <label class="form-label">Скидка ($)</label>
-          <input required="" type="number" name="discount" class="form-control" placeholder="0">
+          <input required="" type="number" id="discount" name="discount" class="form-control" placeholder="0">
         </fieldset>
       </div>
     `;
@@ -134,7 +159,7 @@ export default class ProductForm {
     return `
       <div class="form-group form-group__part-half">
         <label class="form-label">Количество</label>
-        <input required="" type="number" class="form-control" name="quantity" placeholder="1">
+        <input required="" type="number" class="form-control" id="quantity" name="quantity" placeholder="1">
       </div>
     `;
   }
@@ -143,7 +168,7 @@ export default class ProductForm {
     return `
       <div class="form-group form-group__part-half">
         <label class="form-label">Статус</label>
-        <select class="form-control" name="status">
+        <select class="form-control" id="status" name="status">
           <option value="1">Активен</option>
           <option value="0">Неактивен</option>
         </select>
@@ -162,14 +187,14 @@ export default class ProductForm {
   setProductData() {
     ['title', 'description', 'price', 'discount', 'quantity', 'status', 'subcategory']
       .forEach(element => {
-        this.element.querySelector(`[name=${element}]`).value = this.product[element];
+        this.element.querySelector(`[id=${element}]`).value = this.product[element];
       });
 
     if (this.product.images.length) {
-      this.element.querySelector('div[data-element=imageListContainer]').innerHTML = this.product.images.map(({ source, url }) => `
+      this.subElements['imageListContainer'].innerHTML = this.product.images.map(({ source, url }) => `
         <li class="products-edit__imagelist-item sortable-list__item" style="">
-          <input type="hidden" name="url" value="${url}">
-          <input type="hidden" name="source" value="${source}">
+          <input type="hidden" id="url" name="url" value="${url}">
+          <input type="hidden" id="source" name="source" value="${source}">
           <span>
             <img src="icon-grab.svg" data-grab-handle="" alt="grab">
             <img class="sortable-table__cell-img" alt="Image" src="${url}">
@@ -183,12 +208,16 @@ export default class ProductForm {
     }
   }
 
-  removeImage() {
-
+  initEventListeners() {
+    this.subElements['imageListContainer'].addEventListener('pointerDown', this.onClickDeleteImage);
+    this.subElements['productForm'].addEventListener('submit', this.onSubmit);
   }
 
-  initEventListeners() {
-    this.element.querySelector('div[data-element=imageListContainer]').addEventListener('pointe');
+  removeEventListeners() {
+    this.subElements['imageListContainer'].removeEventListener('pointerDown', this.onClickDeleteImage);
+  }
+
+  save() {
   }
 
   remove() {
@@ -197,5 +226,6 @@ export default class ProductForm {
 
   destroy() {
     this.remove();
+    this.subElements = {};
   }
 }
