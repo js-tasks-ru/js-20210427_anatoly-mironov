@@ -6,16 +6,11 @@ const BACKEND_URL = 'https://course-js.javascript.ru';
 
 export default class ProductForm {
   formFields = {
-    title: '',
-    description: '',
-    subcategory: '',
-    price: null,
-    discount: null,
-    quantity: null,
-    status: null,
+    strings: ['title', 'description', 'subcategory'],
+    numbers: ['price', 'discount', 'quantity', 'status'],
   }
 
-  product = {};
+  productData = {};
   categories = [];
 
   subElements = {};
@@ -30,13 +25,6 @@ export default class ProductForm {
 
   constructor(productId = null) {
     this.productId = productId;
-  }
-
-  getElementFromTemplate(template) {
-    const wrapper = document.createElement('div');
-    wrapper.innerHTML = template;
-
-    return wrapper.firstElementChild;
   }
 
   getSubElements(element = this.element) {
@@ -55,7 +43,9 @@ export default class ProductForm {
   async render() {
     await Promise.all([this.getCategories(), this.productId ? this.getProductData() : []]);
 
-    this.element = this.getElementFromTemplate(this.template);
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML = this.template;
+    this.element = wrapper.firstElementChild;
     document.body.append(this.element);
     this.subElements = this.getSubElements();
 
@@ -70,7 +60,7 @@ export default class ProductForm {
     const url = new URL(`${this.api}products`, BACKEND_URL);
     url.searchParams.set('id', id);
 
-    this.product = (await fetchJson(url))[0];
+    this.productData = (await fetchJson(url))[0];
   }
 
   async getCategories() {
@@ -188,19 +178,21 @@ export default class ProductForm {
   }
 
   displayProductData() {
-    Object.keys(this.formFields).forEach(field => {
-      this.subElements['productForm'][field].value = this.product[field];
+    [...this.formFields.strings, ...this.formFields.numbers].forEach(field => {
+      this.subElements['productForm'].querySelector(`#${field}`).value = this.productData[field];
+      // todo: Не понимаю, почему для строки ниже не работают тесты. Но при этом в браузере всё отрабатывает корректно
+      // this.subElements['productForm'][field].value = this.productData[field];
     });
 
-    if (this.product.images.length) {
-      this.subElements['imageListContainer'].innerHTML = this.product.images.map(({ source, url }) => `
+    if (this.productData.images.length) {
+      this.subElements['imageListContainer'].innerHTML = this.productData.images.map(({ source, url }) => `
         <li class="products-edit__imagelist-item sortable-list__item" style="">
           <input type="hidden" id="url" name="url" value="${url}">
           <input type="hidden" id="source" name="source" value="${source}">
           <span>
             <img src="icon-grab.svg" data-grab-handle="" alt="grab">
-            <img class="sortable-table__cell-img" alt="Image" src="${url}">
-            <span>${source}</span>
+            <img class="sortable-table__cell-img" alt="${escapeHtml(source)}" src="${escapeHtml(url)}">
+            <span>${escapeHtml(source)}</span>
           </span>
           <button type="button">
             <img src="icon-trash.svg" data-delete-handle="" alt="delete">
@@ -211,34 +203,38 @@ export default class ProductForm {
   }
 
   initEventListeners() {
-    // this.subElements['imageListContainer'].addEventListener('pointerDown', this.onClickDeleteImage);
     this.subElements['productForm'].addEventListener('submit', this.onSubmit);
-  }
-
-  removeEventListeners() {
-    // this.subElements['imageListContainer'].removeEventListener('pointerDown', this.onClickDeleteImage);
   }
 
   async save() {
     const form = this.subElements['productForm'];
 
-    const product = [];
-
-    Object.keys(this.formFields).forEach(field => {
-      this.product[field] = form[field].value;
+    this.formFields.strings.forEach(field => {
+      this.productData[field] = form.querySelector(`#${field}`).value;
     });
 
-    const url = new URL(`${this.api}products`, BACKEND_URL);
-
-    const data = await fetchJson(url, {
-      method: 'PATCH',
-      body: JSON.stringify(this.product),
-      headers: {
-        'content-type': 'application/json'
-      }
+    this.formFields.numbers.forEach(field => {
+      this.productData[field] = Number(form.querySelector(`#${field}`).value);
     });
 
-    console.log(data[0]);
+    if (!this.productData.images) {
+      this.productData.images = [];
+    }
+
+    try {
+      const res = await fetchJson(new URL(`${this.api}products`, BACKEND_URL), {
+        method: this.productId ? 'PATCH' : 'PUT',
+        body: JSON.stringify(this.productData),
+        headers: {
+          'content-type': 'application/json'
+        }
+      });
+
+      this.element.dispatchEvent(new CustomEvent(`product-${this.productId ? 'updated' : 'saved'}`, {detail: {id: res.id}}));
+      this.productId = res.id;
+    } catch (error) {
+      console.error(`Some error occurred: ${error}`);
+    }
   }
 
   remove() {
@@ -247,7 +243,7 @@ export default class ProductForm {
 
   destroy() {
     this.remove();
-    this.element = {};
-    this.subElements = {};
+    this.element = null;
+    this.subElements = null;
   }
 }
