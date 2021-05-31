@@ -5,6 +5,16 @@ const IMGUR_CLIENT_ID = '28aaa2e823b03b1';
 const BACKEND_URL = 'https://course-js.javascript.ru';
 
 export default class ProductForm {
+  formFields = {
+    title: '',
+    description: '',
+    subcategory: '',
+    price: null,
+    discount: null,
+    quantity: null,
+    status: null,
+  }
+
   product = {};
   categories = [];
 
@@ -12,14 +22,10 @@ export default class ProductForm {
 
   api = '/api/rest/';
 
-  onClickDeleteImage = event => {
-  }
-
-  onSubmit = event => {
+  onSubmit = async event => {
     event.preventDefault();
-    console.log(new FormData(this.subElements['productForm']));
 
-    this.save();
+    await this.save();
   }
 
   constructor(productId = null) {
@@ -47,41 +53,38 @@ export default class ProductForm {
   }
 
   async render() {
-    this.categories = await this.getCategories();
+    await Promise.all([this.getCategories(), this.productId ? this.getProductData() : []]);
+
     this.element = this.getElementFromTemplate(this.template);
     document.body.append(this.element);
-
     this.subElements = this.getSubElements();
 
     if (this.productId) {
-      this.product = await this.getProductInfo();
-
-      this.setProductData();
+      this.displayProductData();
     }
 
     this.initEventListeners();
   }
 
-  async getProductInfo(id = this.productId) {
+  async getProductData(id = this.productId) {
     const url = new URL(`${this.api}products`, BACKEND_URL);
     url.searchParams.set('id', id);
 
-    const data = await fetchJson(url);
-    return data[0];
+    this.product = (await fetchJson(url))[0];
   }
 
-  getCategories() {
+  async getCategories() {
     const url = new URL(`${this.api}categories`, BACKEND_URL);
     url.searchParams.set('_sort', 'weight');
     url.searchParams.set('_refs', 'subcategory');
 
-    return fetchJson(url);
+    this.categories = await fetchJson(url);
   }
 
   get template() {
     return `
       <div class="product-form">
-        <form data-element="productForm" class="form-grid">
+        <form data-element="productForm" class="form-grid"">
           ${this.titleTemplate}
           ${this.descriptionTemplate}
           ${this.imagesTemplate}
@@ -184,11 +187,10 @@ export default class ProductForm {
     }).join('');
   }
 
-  setProductData() {
-    ['title', 'description', 'price', 'discount', 'quantity', 'status', 'subcategory']
-      .forEach(element => {
-        this.element.querySelector(`[id=${element}]`).value = this.product[element];
-      });
+  displayProductData() {
+    Object.keys(this.formFields).forEach(field => {
+      this.subElements['productForm'][field].value = this.product[field];
+    });
 
     if (this.product.images.length) {
       this.subElements['imageListContainer'].innerHTML = this.product.images.map(({ source, url }) => `
@@ -209,15 +211,34 @@ export default class ProductForm {
   }
 
   initEventListeners() {
-    this.subElements['imageListContainer'].addEventListener('pointerDown', this.onClickDeleteImage);
+    // this.subElements['imageListContainer'].addEventListener('pointerDown', this.onClickDeleteImage);
     this.subElements['productForm'].addEventListener('submit', this.onSubmit);
   }
 
   removeEventListeners() {
-    this.subElements['imageListContainer'].removeEventListener('pointerDown', this.onClickDeleteImage);
+    // this.subElements['imageListContainer'].removeEventListener('pointerDown', this.onClickDeleteImage);
   }
 
-  save() {
+  async save() {
+    const form = this.subElements['productForm'];
+
+    const product = [];
+
+    Object.keys(this.formFields).forEach(field => {
+      this.product[field] = form[field].value;
+    });
+
+    const url = new URL(`${this.api}products`, BACKEND_URL);
+
+    const data = await fetchJson(url, {
+      method: 'PATCH',
+      body: JSON.stringify(this.product),
+      headers: {
+        'content-type': 'application/json'
+      }
+    });
+
+    console.log(data[0]);
   }
 
   remove() {
@@ -226,6 +247,7 @@ export default class ProductForm {
 
   destroy() {
     this.remove();
+    this.element = {};
     this.subElements = {};
   }
 }
