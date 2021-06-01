@@ -10,7 +10,10 @@ export default class ProductForm {
     numbers: ['price', 'discount', 'quantity', 'status'],
   }
 
-  productData = {};
+  productData = {
+    images: []
+  };
+
   categories = [];
 
   subElements = {};
@@ -20,37 +23,98 @@ export default class ProductForm {
   onSubmit = async event => {
     event.preventDefault();
 
+    const form = this.subElements['productForm'];
+
+    this.formFields.strings.forEach(field => {
+      this.productData[field] = form.querySelector(`#${field}`).value;
+    });
+
+    this.formFields.numbers.forEach(field => {
+      this.productData[field] = Number(form.querySelector(`#${field}`).value);
+    });
+
     await this.save();
   }
+
+  onImageClick = event => {
+    if (event.target.hasAttribute('data-delete-handle')) {
+      const el = event.target.closest('li');
+      const removedSource = el.querySelector('[name=source]').value;
+      this.productData.images = this.productData.images.filter(image => image.source !== removedSource);
+      el.remove();
+    }
+  }
+
+  onUploadClick = async event => {
+    const uploadButton = event.currentTarget;
+
+    const fileInput = document.createElement('input');
+
+    fileInput.type = 'file';
+    fileInput.accept = 'image/*';
+
+    fileInput.addEventListener('change', async () => {
+      const [file] = fileInput.files;
+
+      if (file) {
+        const loadingClass = 'is-loading';
+        const formData = new FormData();
+        formData.append('image', file);
+
+        uploadButton.classList.add(loadingClass);
+        uploadButton.disabled = true;
+
+        try {
+          const result = await fetchJson('https://api.imgur.com/3/image', {
+            method: 'POST',
+            headers: {
+              Authorization: `Client-ID ${IMGUR_CLIENT_ID}`,
+            },
+            body: formData
+          });
+
+          const imageData = { source: file.name, url: result.data.link };
+          this.productData.images.push(imageData);
+          this.subElements['imageListContainer'].append(this.getElementFromTemplate(this.getImageTemplate(imageData)));
+        } catch (e) {
+          console.error(e);
+        } finally {
+          uploadButton.classList.remove(loadingClass);
+          uploadButton.disabled = false;
+
+          fileInput.remove();
+        }
+      }
+    });
+
+    document.body.append(fileInput);
+    fileInput.click();
+  };
 
   constructor(productId = null) {
     this.productId = productId;
   }
 
-  getSubElements(element = this.element) {
-    const result = {};
-    const elements = element.querySelectorAll('[data-element]');
+  getElementFromTemplate(template) {
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML = template;
 
-    for (const subElement of elements) {
-      const name = subElement.dataset.element;
-
-      result[name] = subElement;
-    }
-
-    return result;
+    return wrapper.firstElementChild;
   }
 
   async render() {
     await Promise.all([this.getCategories(), this.productId ? this.getProductData() : []]);
 
-    const wrapper = document.createElement('div');
-    wrapper.innerHTML = this.template;
-    this.element = wrapper.firstElementChild;
+    this.element = this.getElementFromTemplate(this.template);
     document.body.append(this.element);
     this.subElements = this.getSubElements();
 
     if (this.productId) {
-      this.displayProductData();
+      [...this.formFields.strings, ...this.formFields.numbers].forEach(field => {
+        this.subElements['productForm'].querySelector(`#${field}`).value = this.productData[field];
+        // todo: Не понимаю, почему при использовании строки ниже не работают тесты. Но при этом в браузере всё отрабатывает корректно
+        // this.subElements['productForm'][field].value = this.productData[field];
+      });
     }
 
     this.initEventListeners();
@@ -115,7 +179,7 @@ export default class ProductForm {
       <div class="form-group form-group__wide" data-element="sortable-list-container">
         <label class="form-label">Фото</label>
         <div data-element="imageListContainer">
-          <ul class="sortable-list"></ul>
+          <ul class="sortable-list">${this.productData.images.length ? this.productData.images.map((image) => this.getImageTemplate(image)).join('') : ''}</ul>
         </div>
         <button type="button" id="uploadImage" class="button-primary-outline">
           <span>Загрузить</span>
@@ -177,52 +241,32 @@ export default class ProductForm {
     }).join('');
   }
 
-  displayProductData() {
-    [...this.formFields.strings, ...this.formFields.numbers].forEach(field => {
-      this.subElements['productForm'].querySelector(`#${field}`).value = this.productData[field];
-      // todo: Не понимаю, почему для строки ниже не работают тесты. Но при этом в браузере всё отрабатывает корректно
-      // this.subElements['productForm'][field].value = this.productData[field];
-    });
-
-    if (this.productData.images.length) {
-      this.subElements['imageListContainer'].innerHTML = this.productData.images.map(({ source, url }) => `
-        <li class="products-edit__imagelist-item sortable-list__item" style="">
-          <input type="hidden" id="url" name="url" value="${url}">
-          <input type="hidden" id="source" name="source" value="${source}">
-          <span>
-            <img src="icon-grab.svg" data-grab-handle="" alt="grab">
-            <img class="sortable-table__cell-img" alt="${escapeHtml(source)}" src="${escapeHtml(url)}">
-            <span>${escapeHtml(source)}</span>
-          </span>
-          <button type="button">
-            <img src="icon-trash.svg" data-delete-handle="" alt="delete">
-          </button>
-        </li>
-      `).join('');
-    }
+  getImageTemplate({ source, url }) {
+    return `
+      <li class="products-edit__imagelist-item sortable-list__item" style="">
+        <input type="hidden" name="url" value="${url}">
+        <input type="hidden" name="source" value="${source}">
+        <span>
+          <img src="icon-grab.svg" data-grab-handle="" alt="grab">
+          <img class="sortable-table__cell-img" alt="${escapeHtml(source)}" src="${escapeHtml(url)}">
+          <span>${escapeHtml(source)}</span>
+        </span>
+        <button type="button">
+          <img src="icon-trash.svg" data-delete-handle="" alt="delete">
+        </button>
+      </li>
+    `;
   }
 
   initEventListeners() {
     this.subElements['productForm'].addEventListener('submit', this.onSubmit);
+    this.subElements['imageListContainer'].addEventListener('pointerdown', this.onImageClick);
+    this.element.querySelector('#uploadImage').addEventListener('pointerdown', this.onUploadClick);
   }
 
   async save() {
-    const form = this.subElements['productForm'];
-
-    this.formFields.strings.forEach(field => {
-      this.productData[field] = form.querySelector(`#${field}`).value;
-    });
-
-    this.formFields.numbers.forEach(field => {
-      this.productData[field] = Number(form.querySelector(`#${field}`).value);
-    });
-
-    if (!this.productData.images) {
-      this.productData.images = [];
-    }
-
     try {
-      const res = await fetchJson(new URL(`${this.api}products`, BACKEND_URL), {
+      const response = await fetchJson(new URL(`${this.api}products`, BACKEND_URL), {
         method: this.productId ? 'PATCH' : 'PUT',
         body: JSON.stringify(this.productData),
         headers: {
@@ -230,11 +274,26 @@ export default class ProductForm {
         }
       });
 
-      this.element.dispatchEvent(new CustomEvent(`product-${this.productId ? 'updated' : 'saved'}`, {detail: {id: res.id}}));
-      this.productId = res.id;
+      this.element.dispatchEvent(new CustomEvent(`product-${this.productId ? 'updated' : 'saved'}`, {detail: {id: response.id}}));
+
+      this.productData = response;
+      this.productId = response.id;
     } catch (error) {
       console.error(`Some error occurred: ${error}`);
     }
+  }
+
+  getSubElements(element = this.element) {
+    const result = {};
+    const elements = element.querySelectorAll('[data-element]');
+
+    for (const subElement of elements) {
+      const name = subElement.dataset.element;
+
+      result[name] = subElement;
+    }
+
+    return result;
   }
 
   remove() {
