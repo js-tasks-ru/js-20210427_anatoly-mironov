@@ -112,7 +112,7 @@ export default class ProductForm {
     if (this.productId) {
       [...this.formFields.strings, ...this.formFields.numbers].forEach(field => {
         this.subElements['productForm'].querySelector(`#${field}`).value = this.productData[field];
-        // todo: Не понимаю, почему при использовании строки ниже не работают тесты. Но при этом в браузере всё отрабатывает корректно
+        // todo: @dosandk, не понимаю, почему при использовании строки ниже не работают тесты. Но при этом в браузере всё отрабатывает корректно. Подскажите, пожалуйста
         // this.subElements['productForm'][field].value = this.productData[field];
       });
     }
