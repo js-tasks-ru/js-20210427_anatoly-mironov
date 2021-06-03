@@ -6,7 +6,7 @@ export default class RangePicker {
   onInputClick = () => {
     if (!this.isOpened) {
       if (!this.hasSelectionByUser) {
-        this.updateRangePicker();
+        this.subElements['selector'].innerHTML = this.selectorTemplate;
         this.hasSelectionByUser = true;
       }
 
@@ -22,12 +22,12 @@ export default class RangePicker {
 
     if (classList.contains('rangepicker__selector-control-left')) {
       this.firstMonthDay.setMonth(this.firstMonthDay.getMonth() - 1);
-      this.updateRangePicker();
+      this.updateCalendars();
     }
 
     if (classList.contains('rangepicker__selector-control-right')) {
       this.firstMonthDay.setMonth(this.firstMonthDay.getMonth() + 1);
-      this.updateRangePicker();
+      this.updateCalendars();
     }
 
     if (classList.contains(this.rangePickerCellClass)) {
@@ -53,7 +53,7 @@ export default class RangePicker {
         this.dispatchEvent();
         this.updateInput();
         this.collapseDatePicker();
-        this.updateRangePicker();
+        this.updateCalendars();
       }
     }
 
@@ -113,7 +113,7 @@ export default class RangePicker {
     return wrapper.firstElementChild;
   }
 
-  get rangePickerSelectorTemplate() {
+  get selectorTemplate() {
     return `
       <div class="rangepicker__selector-arrow"></div>
       <div class="rangepicker__selector-control-left"></div>
@@ -213,8 +213,18 @@ export default class RangePicker {
     document.addEventListener('click', this.onDocumentClick, true);
   }
 
-  updateRangePicker() {
-    this.subElements['selector'].innerHTML = this.rangePickerSelectorTemplate;
+  // have to use remove + append of calendars instead of simple replacement of innerHTML due to unit tests (links to selector-controls elements (left|right) become extinct)
+  // initial solution was this.subElements['selector'].innerHTML = this.selectorTemplate;
+  updateCalendars() {
+    const selector = this.subElements['selector'];
+    selector.querySelectorAll('.rangepicker__calendar').forEach(cal => cal.remove());
+
+    selector.append(
+      this.getElementFromTemplate(this.getCalendarTemplate(this.firstMonthDay))
+    );
+    selector.append(
+      this.getElementFromTemplate(this.getCalendarTemplate(new Date(this.firstMonthDay.getFullYear(), this.firstMonthDay.getMonth() + 1, 1)))
+    );
   }
 
   updateInput() {
