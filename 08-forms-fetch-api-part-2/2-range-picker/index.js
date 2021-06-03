@@ -42,6 +42,7 @@ export default class RangePicker {
         }
 
         this.selection = this.getDatesFromRange(this.selected.from, this.selected.to);
+        this.dispatchEvent();
         this.updateInput();
         this.collapseDatePicker();
       }
@@ -96,7 +97,6 @@ export default class RangePicker {
   getMonthLocaleString(date, locale) {
     return date.toLocaleString(locale, { month: 'long' });
   }
-
 
   getElementFromTemplate(template) {
     const wrapper = document.createElement('div');
@@ -211,6 +211,10 @@ export default class RangePicker {
 
   updateInput() {
     this.subElements['input'].innerHTML = this.inputTemplate;
+  }
+
+  dispatchEvent() {
+    this.element.dispatchEvent(new CustomEvent('date-select', { bubbles: true, detail: this.selected }));
   }
 
   remove() {
