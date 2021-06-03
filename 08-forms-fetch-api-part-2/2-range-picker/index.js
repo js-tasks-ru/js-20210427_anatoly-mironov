@@ -1,5 +1,7 @@
 export default class RangePicker {
   openedRangePickerClass = 'rangepicker_open';
+  rangePickerCellClass = 'rangepicker__cell';
+  rangePickerFromCellClass = 'rangepicker__selected-from';
 
   onInputClick = () => {
     if (!this.isOpened) {
@@ -20,20 +22,26 @@ export default class RangePicker {
 
     if (classList.contains('rangepicker__selector-control-left')) {
       this.firstMonthDay.setMonth(this.firstMonthDay.getMonth() - 1);
+      this.updateRangePicker();
     }
 
     if (classList.contains('rangepicker__selector-control-right')) {
       this.firstMonthDay.setMonth(this.firstMonthDay.getMonth() + 1);
+      this.updateRangePicker();
     }
 
-    if (classList.contains('rangepicker__cell')) {
+    if (classList.contains(this.rangePickerCellClass)) {
       if (this.selected.to) {
         this.selected.from = null;
         this.selected.to = null;
+
+        this.subElements['selector'].querySelectorAll(`.${this.rangePickerCellClass}`)
+          .forEach(date => date.className = this.rangePickerCellClass);
       }
 
       if (!this.selected.from) {
         this.selected.from = new Date(element.dataset.value);
+        event.target.classList.add(this.rangePickerFromCellClass);
       } else {
         this.selected.to = new Date(element.dataset.value);
 
@@ -42,12 +50,13 @@ export default class RangePicker {
         }
 
         this.selection = this.getDatesFromRange(this.selected.from, this.selected.to);
+        this.dispatchEvent();
         this.updateInput();
         this.collapseDatePicker();
+        this.updateRangePicker();
       }
     }
 
-    this.updateRangePicker();
   };
 
   onDocumentClick = event => {
@@ -97,7 +106,6 @@ export default class RangePicker {
     return date.toLocaleString(locale, { month: 'long' });
   }
 
-
   getElementFromTemplate(template) {
     const wrapper = document.createElement('div');
     wrapper.innerHTML = template;
@@ -141,7 +149,7 @@ export default class RangePicker {
       }
 
       if (timestamp === firstSelectionDayStamp) {
-        extraClass = ' rangepicker__selected-from';
+        extraClass = ` ${this.rangePickerFromCellClass}`;
       }
 
       if (lastSelectionDayStamp && timestamp === lastSelectionDayStamp) {
@@ -154,7 +162,7 @@ export default class RangePicker {
 
       const dataValue = day.toISOString();
 
-      return `<button type="button" data-value="${dataValue}" class="rangepicker__cell${extraClass}" ${extraStyle}>${date}</button>`;
+      return `<button type="button" data-value="${dataValue}" class="${this.rangePickerCellClass}${extraClass}" ${extraStyle}>${date}</button>`;
     }).join('');
   }
 
@@ -211,6 +219,10 @@ export default class RangePicker {
 
   updateInput() {
     this.subElements['input'].innerHTML = this.inputTemplate;
+  }
+
+  dispatchEvent() {
+    this.element.dispatchEvent(new CustomEvent('date-select', { bubbles: true, detail: this.selected }));
   }
 
   remove() {
