@@ -68,9 +68,9 @@ export default class RangePicker {
     }
   };
 
-  constructor({ from = new Date(Date.now() - 1000 * 3600 * 24 * 30), to = new Date() } = {}) {
-    this.selection = this.getDatesFromRange(from, to);
+  constructor({ from, to } = {}) {
     this.selected = { from, to };
+    this.selection = this.getDatesFromRange(from, to);
 
     this.firstMonthDay = new Date(this.selected.from.getFullYear(), this.selected.from.getMonth(), 1);
 

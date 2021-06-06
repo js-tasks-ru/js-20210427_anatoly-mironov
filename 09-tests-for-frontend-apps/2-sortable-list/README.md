@@ -3,7 +3,7 @@
 Необходимо реализовать "SortableList" компонент - цель которого позволить перемещать элементы 
 списка с помощью [Drag'n'Drop](https://learn.javascript.ru/mouse-drag-and-drop).
 
-!["SortableTable v3"](sortable-list.gif)
+!["SortableTable v3"](./public/sortable-list.gif)
 
 В проекте данный компонент будет использоваться на страницах:
 * [Категории](https://course-js.javascript.ru/categories)
