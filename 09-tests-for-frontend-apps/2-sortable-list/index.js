@@ -1,4 +1,7 @@
 export default class SortableList {
+  static reorderedEventName = 'sortable-list-reordered';
+  static removedItemEventName = 'sortable-list-item-removed';
+
   nodeClass = {
     dragging: 'sortable-list__item_dragging'
   }
@@ -70,7 +73,7 @@ export default class SortableList {
     this.removeDocumentEventListeners();
 
     if (this.movementIndex.from !== this.movementIndex.to) {
-      this.dispatchEvent();
+      this.element.dispatchEvent(new CustomEvent(SortableList.reorderedEventName, { bubbles: true, detail: this.movementIndex }));
     }
   };
 
@@ -104,13 +107,12 @@ export default class SortableList {
     if (event.target.closest('[data-delete-handle]')) {
       event.preventDefault();
 
+      this.element.dispatchEvent(new CustomEvent(SortableList.removedItemEventName, { bubbles: true, detail: this.getNodeIndex(this.activeNode) }));
       this.activeNode.remove();
     }
   };
 
-  constructor({ items, listName = 'sortable-list' } = { items: [] }) {
-    this.listName = listName;
-
+  constructor({ items } = { items: [] }) {
     this.render(items);
     this.initEventListeners();
   }
@@ -148,7 +150,7 @@ export default class SortableList {
 
     if (items.length) {
       for (const item of items) {
-        item.className = 'sortable-list__item';
+        item.classList.add('sortable-list__item');
         this.element.append(item);
       }
     }
@@ -165,10 +167,6 @@ export default class SortableList {
 
   initEventListeners() {
     this.element.addEventListener('pointerdown', this.onPointerDown);
-  }
-
-  dispatchEvent() {
-    this.element.dispatchEvent(new CustomEvent(`${this.listName}-reordered`, { bubbles: true, detail: this.movementIndex }));
   }
 
   addDocumentEventListeners() {
