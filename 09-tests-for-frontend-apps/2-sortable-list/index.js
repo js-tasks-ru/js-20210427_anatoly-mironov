@@ -37,13 +37,13 @@ export default class SortableList {
     this.activeNode.style.left = `${clientX - this.dragOffset.x}px`;
     this.activeNode.style.top = `${clientY - this.dragOffset.y}px`;
 
-    if (clientY < this.siblings.previous.y && this.siblings.previous.node) {
+    if (this.siblings.previous.node && clientY < this.siblings.previous.y) {
       this.siblings.previous.node.before(this.placeholderNode);
 
       this.setNewSiblingNodes();
     }
 
-    if (clientY > this.siblings.next.y && this.siblings.next.node) {
+    if (this.siblings.next.node && this.siblings.next.node !== this.activeNode && clientY > this.siblings.next.y) {
       this.siblings.next.node.after(this.placeholderNode);
 
       this.setNewSiblingNodes();
@@ -108,7 +108,7 @@ export default class SortableList {
     }
   };
 
-  constructor({ items, listName = 'sortable-list' } = {}) {
+  constructor({ items, listName = 'sortable-list' } = { items: [] }) {
     this.listName = listName;
 
     this.render(items);
@@ -146,9 +146,11 @@ export default class SortableList {
     this.element = document.createElement('ul');
     this.element.className = 'sortable-list';
 
-    for (const item of items) {
-      item.className = 'sortable-list__item';
-      this.element.append(item);
+    if (items.length) {
+      for (const item of items) {
+        item.className = 'sortable-list__item';
+        this.element.append(item);
+      }
     }
   }
 
@@ -167,7 +169,6 @@ export default class SortableList {
 
   dispatchEvent() {
     this.element.dispatchEvent(new CustomEvent(`${this.listName}-reordered`, { bubbles: true, detail: this.movementIndex }));
-    console.log(this.movementIndex);
   }
 
   addDocumentEventListeners() {
