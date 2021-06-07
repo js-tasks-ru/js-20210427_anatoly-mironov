@@ -44,6 +44,7 @@ export default class RangePicker {
         event.target.classList.add(this.rangePickerFromCellClass);
       } else {
         this.selected.to = new Date(element.dataset.value);
+        this.selected.to.setHours(23, 59, 59);
 
         if (this.selected.from.valueOf() > this.selected.to.valueOf()) {
           [this.selected.to, this.selected.from] = [this.selected.from, this.selected.to];
@@ -135,8 +136,8 @@ export default class RangePicker {
   getDateGridTemplate(date) {
     const month = this.getDatesFromRange(new Date(date.getFullYear(), date.getMonth(), 1, 12), new Date(date.getFullYear(), date.getMonth() + 1, 0));
 
-    const firstSelectionDayStamp = this.selected.from.setHours(0, 0, 0, 0);
-    const lastSelectionDayStamp = this.selected.to.setHours(0, 0, 0, 0);
+    const firstSelectionDayStamp = this.selected.from ? this.selected.from.setHours(0, 0, 0, 0) : null;
+    const lastSelectionDayStamp = this.selected.to ? this.selected.to.setHours(0, 0, 0, 0) : null;
 
     return month.map(day => {
       const timestamp = day.valueOf();
