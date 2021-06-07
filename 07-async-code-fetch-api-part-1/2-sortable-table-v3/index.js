@@ -56,7 +56,7 @@ export default class SortableTable {
   constructor(
     headerConfig = [],
     {
-      url = '',
+      url = null,
       sorted = {
         id: headerConfig.find(item => item.sortable).id,
         order: SortableTable.defaultSortOrder
@@ -64,7 +64,7 @@ export default class SortableTable {
       isSortLocally = false
     } = {}
   ) {
-    this.url = new URL(url, BACKEND_URL);
+    this.url = typeof url === 'string' ? new URL(url, BACKEND_URL) : url;
     this.headerConfig = headerConfig;
     this.isSortLocally = isSortLocally;
     this.sorted = sorted;
@@ -169,11 +169,11 @@ export default class SortableTable {
     this.url.searchParams.set('_order', order);
     this.url.searchParams.set('_start', startFrom.toString());
     this.url.searchParams.set('_end', endAt.toString());
-    const data = await fetchJson(this.url);
+    this.data = await fetchJson(this.url);
 
     this.element.classList.remove(this.loadingTableClass);
 
-    return data;
+    return this.data;
   }
 
   update(data, replaceData = true) {

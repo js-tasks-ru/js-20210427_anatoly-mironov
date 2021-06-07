@@ -134,8 +134,9 @@ export default class RangePicker {
 
   getDateGridTemplate(date) {
     const month = this.getDatesFromRange(new Date(date.getFullYear(), date.getMonth(), 1, 12), new Date(date.getFullYear(), date.getMonth() + 1, 0));
-    const firstSelectionDayStamp = this.selected.from.valueOf();
-    const lastSelectionDayStamp = this.selected.to ? this.selected.to.valueOf() : null;
+
+    const firstSelectionDayStamp = this.selected.from.setHours(0, 0, 0, 0);
+    const lastSelectionDayStamp = this.selected.to.setHours(0, 0, 0, 0);
 
     return month.map(day => {
       const timestamp = day.valueOf();
