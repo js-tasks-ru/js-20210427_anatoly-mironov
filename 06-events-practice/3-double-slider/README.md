@@ -5,7 +5,7 @@
 Необходимо реализовать "DoubleSlider" компонент, который понадобится на странице 
 [products](https://course-js.javascript.ru/products)
 
-!["DoubleSlider"](double-slider.gif)
+!["DoubleSlider"](./public/double-slider.gif)
 
 **Обратите внимание:** 
 
